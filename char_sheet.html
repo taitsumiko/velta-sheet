@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VELTA Character Sheet</title>
+    <style>
+        :root { 
+            --main: #4fc3f7; 
+            --bg: #050a14; 
+            --border: rgba(79, 195, 247, 0.4);
+            --glow: rgba(79, 195, 247, 0.8);
+        }
+        
+        /* 初期状態は非表示（パスワード用） */
+        #main-content-wrapper { display: none; opacity: 0; transition: opacity 1s ease; }
+        
+        /* パスワード入力画面のスタイル */
+        #auth-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 9999;
+        }
+        .auth-box { text-align: center; border: 1px solid var(--border); padding: 40px; background: #050a14; box-shadow: 0 0 20px var(--glow); }
+        .auth-box h2 { font-size: 12px; letter-spacing: 0.2em; margin-bottom: 20px; color: var(--main); }
+        .auth-box input { 
+            background: transparent; border: 1px solid var(--border); color: #fff; 
+            padding: 10px; text-align: center; font-size: 18px; outline: none; width: 200px;
+        }
+        .auth-box button { 
+            display: block; margin: 20px auto 0; background: var(--main); color: #000;
+            border: none; padding: 10px 30px; font-weight: bold; cursor: pointer;
+        }
+
+        body { 
+            background: #000; 
+            color: var(--main); 
+            font-family: "Optima", "YuMincho", "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", serif;
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            padding: 40px 0; 
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .sheet-container { padding: 20px; background: #000; }
+        .sheet { 
+            width: 900px; padding: 60px; background: var(--bg); border: 1px solid var(--border); 
+            box-sizing: border-box; position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        }
+
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+        .header-left { flex: 0 0 320px; }
+        .race-tag { 
+            font-family: "Helvetica Neue", sans-serif; font-size: 10px; border: 1px solid var(--main); 
+            color: var(--main); padding: 3px 15px; letter-spacing: 0.15em; display: inline-block; margin-bottom: 10px;
+        }
+        h1 { font-size: 48px; margin: 0 0 15px 0; font-weight: 300; letter-spacing: 0.05em; color: var(--main); }
+
+        .special-option-panel {
+            width: 320px; border: 1px solid var(--border); padding: 15px 20px; 
+            background: rgba(0,0,0,0.2); display: none; box-sizing: border-box; margin-top: 10px;
+        }
+        .special-option-title { font-size: 9px; opacity: 0.6; margin-bottom: 10px; display: block; letter-spacing: 0.1em; }
+        .special-grid { display: flex; flex-direction: column; gap: 8px; }
+        .spec-item { display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; opacity: 0.7; }
+        .spec-circle { width: 12px; height: 12px; border: 1px solid var(--main); border-radius: 50%; position: relative; }
+        .spec-item.active { opacity: 1; font-weight: bold; }
+        .spec-item.active .spec-circle::after { 
+            content: ''; position: absolute; top: 2px; left: 2px; width: 6px; height: 6px; 
+            background: var(--main); border-radius: 50%; box-shadow: 0 0 8px var(--glow);
+        }
+
+        .header-right { display: flex; flex-direction: column; gap: 15px; align-items: flex-end; flex: 1; }
+        .trait-panel { 
+            width: 400px; font-size: 12px; line-height: 1.7; border: 1px solid var(--border); 
+            padding: 20px; background: rgba(0,0,0,0.2); color: var(--main); box-sizing: border-box;
+        }
+
+        .main-content { display: flex; gap: 50px; margin-top: 20px; align-items: flex-start; }
+        .left-column { flex: 0 0 320px; display: flex; flex-direction: column; gap: 20px; }
+        .photo-frame { 
+            width: 320px; height: 500px; border: 1px solid var(--border); background: #000; 
+            display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; overflow: hidden;
+        }
+        .photo-frame img { width: 100%; height: 100%; object-fit: cover; position: relative; z-index: 1; }
+        .photo-frame::after { content: "PORTRAIT / 肖像画"; font-size: 10px; opacity: 0.4; color: var(--main); position: absolute; z-index: 0; }
+
+        .rank-label { font-family: "Helvetica Neue", sans-serif; font-size: 9px; opacity: 0.7; margin-bottom: 15px; display: block; color: var(--main); letter-spacing: 0.1em; font-weight: 600; }
+        .rank-grid { display: flex; gap: 10px; }
+        .rank-item { 
+            width: 45px; height: 45px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+            font-size: 20px; color: var(--main); cursor: pointer; transition: all 0.3s ease;
+        }
+        .rank-item.active { background: var(--main); color: #000; border-color: var(--main); box-shadow: 0 0 20px var(--glow); }
+        .rank-item.disabled { opacity: 0.1; cursor: not-allowed; }
+
+        .inputs { flex: 1; display: flex; flex-direction: column; gap: 28px; margin-top: -20px; }
+        .field { border-bottom: 1px solid var(--border); padding-bottom: 8px; position: relative; }
+        .field label { font-family: "Helvetica Neue", sans-serif; font-size: 9px; opacity: 0.8; display: block; margin-bottom: 10px; color: var(--main); }
+        input, textarea { background: transparent; border: none; color: var(--main); width: 100%; outline: none; font-size: 20px; font-family: inherit; }
+        textarea { font-size: 16px; line-height: 1.6; resize: none; }
+
+        .age-field { display: flex; align-items: flex-end; justify-content: flex-end; }
+        .age-field input { text-align: right; padding: 0; margin: 0 4px 0 0; line-height: 1; width: 60px; }
+        .age-unit { font-size: 16px; opacity: 0.8; font-family: "YuMincho", serif; margin-bottom: 2px; }
+
+        .energy-grid { display: flex; gap: 12px; flex-wrap: wrap; }
+        .energy-item { border: 1px solid var(--border); padding: 8px 20px; cursor: pointer; font-size: 12px; }
+        .energy-item.active { background: var(--main); color: #000; font-weight: 600; box-shadow: 0 0 20px var(--glow); }
+
+        .footer { margin-top: 50px; display: flex; justify-content: space-between; font-size: 10px; border-top: 1px solid var(--border); padding-top: 30px; color: var(--main); opacity: 0.6; line-height: 1.5; }
+
+        .controls { position: fixed; left: 30px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 15px; z-index: 100; }
+        .controls button { 
+            background: transparent; border: 1px solid var(--border); color: var(--main); padding: 20px 8px; 
+            cursor: pointer; font-size: 11px; writing-mode: vertical-rl; opacity: 0.4; transition: all 0.3s ease;
+        }
+        .controls button.active { opacity: 1; background: rgba(0,0,0,0.5); border-color: var(--main); box-shadow: 0 0 15px var(--glow), inset 0 0 10px var(--glow); text-shadow: 0 0 5px var(--main); }
+
+        .save-area { margin-top: 40px; margin-bottom: 60px; width: 100%; display: flex; justify-content: center; }
+        .save-btn { 
+            background: var(--main); color: #000; border: none; padding: 15px 50px; 
+            font-weight: bold; cursor: pointer; letter-spacing: 0.1em;
+            box-shadow: 0 0 20px var(--glow); transition: transform 0.2s; white-space: nowrap;
+        }
+
+        @media (max-width: 900px) {
+            body { padding: 0; }
+            .sheet { width: 100vw; padding: 30px 20px; border: none; }
+            .header, .main-content { flex-direction: column; gap: 30px; }
+            .header-left, .header-right, .left-column, .trait-panel, .special-option-panel, .photo-frame { width: 100%; flex: none; }
+            .inputs { margin-top: 0 !important; }
+            .controls { position: relative; left: 0; top: 0; transform: none; flex-direction: row; padding: 10px; width: 100%; box-sizing: border-box; background: #000; }
+            .controls button { writing-mode: horizontal-tb; padding: 12px; flex: 1; font-size: 10px; height: 50px; }
+            .photo-frame { height: 450px; }
+            h1 { font-size: 36px; }
+            .footer { flex-direction: column; gap: 10px; text-align: left; }
+            .save-area { padding: 0 20px; box-sizing: border-box; }
+            .save-btn { width: 100%; padding: 15px 10px; font-size: 14px; white-space: normal; line-height: 1.2; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 認証画面 -->
+<div id="auth-screen">
+    <div class="auth-box">
+        <h2>ACCESS RESTRICTED<br>合言葉を入力してください</h2>
+        <input type="password" id="pass-input" placeholder="Keyword...">
+        <button onclick="checkPass()">ACCESS</button>
+    </div>
+</div>
+
+<!-- メインコンテンツ -->
+<div id="main-content-wrapper">
+    <div class="controls" id="race-selector">
+        <button onclick="update('human', this)" class="active">HUMAN / 人間</button>
+        <button onclick="update('beast', this)">BEASTKIN / 獣人</button>
+        <button onclick="update('horn', this)">HORNED / 角持ち</button>
+    </div>
+
+    <div class="sheet-container" id="capture-target">
+        <div class="sheet">
+            <div class="header">
+                <div class="header-left">
+                    <div class="race-tag" id="tag">Character Registry</div>
+                    <h1 id="title">人間</h1>
+                    <div id="special-panel" class="special-option-panel">
+                        <span id="special-title" class="special-option-title"></span>
+                        <div id="special-grid" class="special-grid"></div>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div id="trait" class="trait-panel"></div>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="left-column">
+                    <div class="photo-frame" onclick="document.getElementById('img-up').click()">
+                        <input type="file" id="img-up" hidden accept="image/*" onchange="loadImg(event)">
+                    </div>
+                    <div class="rank-section">
+                        <span class="rank-label">ENERGY CAPACITY RANK / 出力等級</span>
+                        <div class="rank-grid" id="rank-box"></div>
+                    </div>
+                </div>
+
+                <div class="inputs">
+                    <div class="field"><label>NAME / 氏名</label><input type="text" spellcheck="false"></div>
+                    <div style="display:flex; gap:25px;">
+                        <div class="field" style="flex:1;"><label>AGE / 年齢</label>
+                            <div class="age-field"><input type="text" spellcheck="false"><span class="age-unit">歳</span></div>
+                        </div>
+                        <div class="field" style="flex:2;"><label>GENDER / 性別</label><input type="text"></div>
+                    </div>
+                    <div class="field"><label>APPEARANCE / 外見的特徴</label><textarea rows="3" spellcheck="false"></textarea></div>
+                    <div class="field"><label>PERSONALITY / 性格・気質</label><textarea rows="3" spellcheck="false"></textarea></div>
+                    <div class="energy-section">
+                        <span class="rank-label">PRIMARY ENERGY SOURCE / 主力エネルギー源</span>
+                        <div class="energy-grid" id="energy-box"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:40px; margin-top:40px;">
+                <div class="field"><label>VOCATION / 職業・役割</label><input type="text"></div>
+                <div class="field"><label>ACTIVE SECTOR / 主要活動領域</label><input type="text"></div>
+            </div>
+            <div class="field" style="margin-top:40px;"><label>BIOGRAPHY / 経歴・過去</label><textarea rows="5" spellcheck="false"></textarea></div>
+
+            <div class="footer">
+                <div id="foot"></div>
+                <div>VELTA OFFICIAL REGISTRY — ヴェルタ公的身分登録</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="save-area">
+        <button class="save-btn" id="save-btn">SAVE AS IMAGE / 画像として保存</button>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+    // ★★★ここに好きなパスワードを設定してください★★★
+    const SECRET_PASS = "mirumo"; 
+
+    function checkPass() {
+        const input = document.getElementById('pass-input').value;
+        if (input === SECRET_PASS) {
+            document.getElementById('auth-screen').style.display = 'none';
+            const main = document.getElementById('main-content-wrapper');
+            main.style.display = 'block';
+            setTimeout(() => main.style.opacity = '1', 10);
+        } else {
+            alert("合言葉が違います。");
+        }
+    }
+
+    // Enterキーでも送信できるように
+    document.getElementById('pass-input').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') checkPass();
+    });
+
+    const allRanks = ['S','A','B','C','D','E'];
+    const dataset = {
+        human: {
+            colors: { main: '#4fc3f7', bg: '#050a14', border: 'rgba(79, 195, 247, 0.4)', glow: 'rgba(79, 195, 247, 0.8)' },
+            tag: 'Character Registry — Human / 人間登録票', title: '人間',
+            trait: '特性：ヴェイン・エルム両エネルギーの運用が可能。グリフ適正が高く、全種族中最高の汎用性を持つ。',
+            availableRanks: ['A','B','C','D','E'],
+            energies: ['VEIN / ヴェイン', 'ELM / エルム', 'HYBRID / 混合'],
+            foot: '※ エネルギー混合時の出力不安定性に注意',
+            special: null
+        },
+        beast: {
+            colors: { main: '#81c784', bg: '#08100a', border: 'rgba(129, 199, 132, 0.4)', glow: 'rgba(129, 199, 132, 0.8)' },
+            tag: 'Character Registry — Beastkin / 獣人登録票', title: '獣人',
+            trait: '特性：エルム固定。強靭な肉体と野生の直感を備え、特定の環境下で真価を発揮する。',
+            availableRanks: ['A','B','C','D'],
+            energies: ['ELM (FIXED) / エルム固定'],
+            foot: '※ 種別による固有能力を備考に併記すること',
+            special: { title: '種族・科', options: ['犬科', '猫科', '兎系'] }
+        },
+        horn: {
+            colors: { main: '#d156ff', bg: '#0d0615', border: 'rgba(209, 86, 255, 0.4)', glow: 'rgba(209, 86, 255, 0.8)' },
+            tag: 'Character Registry — Horned / 角持ち登録票', title: '角持ち',
+            trait: '特性：ヴェイン固定。角を触媒とした高圧縮放出を行う。ランクSは希少。',
+            availableRanks: ['S','A','B'],
+            energies: ['VEIN (FIXED) / ヴェイン固定'],
+            foot: '※ ランクS個体はギルドの監視対象',
+            special: { title: '角の本数', options: ['1本', '2本'] }
+        }
+    };
+
+    function loadImg(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (f) => { document.querySelector('.photo-frame').innerHTML = `<img src="${f.target.result}">`; };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function update(r, btnElement) {
+        const d = dataset[r];
+        const root = document.documentElement;
+        root.style.setProperty('--main', d.colors.main);
+        root.style.setProperty('--bg', d.colors.bg);
+        root.style.setProperty('--border', d.colors.border);
+        root.style.setProperty('--glow', d.colors.glow);
+
+        const allBtns = document.querySelectorAll('#race-selector button');
+        allBtns.forEach(btn => btn.classList.remove('active'));
+        if (btnElement) btnElement.classList.add('active');
+
+        document.getElementById('tag').innerText = d.tag;
+        document.getElementById('title').innerText = d.title;
+        document.getElementById('trait').innerText = d.trait;
+        document.getElementById('foot').innerText = d.foot;
+
+        const sp = document.getElementById('special-panel');
+        const sg = document.getElementById('special-grid');
+        if (d.special) {
+            sp.style.display = 'block';
+            document.getElementById('special-title').innerText = d.special.title;
+            sg.innerHTML = '';
+            d.special.options.forEach(opt => {
+                const div = document.createElement('div');
+                div.className = 'spec-item';
+                div.innerHTML = `<div class="spec-circle"></div><span>${opt}</span>`;
+                div.onclick = function() { Array.from(sg.children).forEach(c => c.classList.remove('active')); this.classList.add('active'); };
+                sg.appendChild(div);
+            });
+        } else { sp.style.display = 'none'; }
+
+        const rb = document.getElementById('rank-box'); rb.innerHTML = '';
+        allRanks.forEach(v => {
+            const i = document.createElement('div'); i.className = 'rank-item'; i.innerText = v;
+            if (d.availableRanks.includes(v)) {
+                i.onclick = function() { Array.from(rb.children).forEach(x=>x.classList.remove('active')); this.classList.add('active'); };
+            } else { i.classList.add('disabled'); }
+            rb.appendChild(i);
+        });
+
+        const eb = document.getElementById('energy-box'); eb.innerHTML = '';
+        d.energies.forEach(e => {
+            const i = document.createElement('div'); i.className = 'energy-item'; i.innerText = e;
+            i.onclick = function() { Array.from(eb.children).forEach(x=>x.classList.remove('active')); this.classList.add('active'); };
+            eb.appendChild(i);
+        });
+    }
+
+    document.getElementById('save-btn').onclick = function() {
+        const target = document.getElementById('capture-target');
+        this.innerText = "GENERATING...";
+        html2canvas(target, { backgroundColor: '#000', scale: 2, useCORS: true }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'Character_Sheet.jpg';
+            link.href = canvas.toDataURL('image/jpeg', 0.9);
+            link.click();
+            this.innerText = "SAVE AS IMAGE / 画像として保存";
+        });
+    };
+
+    update('human', document.querySelector('#race-selector button'));
+</script>
+</body>
+</html>
