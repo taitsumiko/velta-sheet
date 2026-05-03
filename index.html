@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>VELTA Character Sheet</title>
     <style>
         :root { 
@@ -83,15 +83,15 @@
         .main-content { display: flex; gap: 50px; margin-top: 10px; align-items: flex-start; }
         .left-column { flex: 0 0 320px; display: flex; flex-direction: column; gap: 20px; }
         
-        /* 画像枠設定 */
+        /* スマホでの画面スクロールを完全に阻止するための設定 */
         .photo-frame { 
             width: 320px; height: 500px; border: 1px solid var(--border); background: #000; 
             display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; overflow: hidden;
+            touch-action: none; 
         }
-        #target-img { position: absolute; cursor: move; user-select: none; z-index: 1; max-width: none; }
+        #target-img { position: absolute; cursor: move; user-select: none; z-index: 1; max-width: none; pointer-events: none; }
         .photo-frame::after { content: "PORTRAIT / 写真"; font-size: 10px; opacity: 0.4; color: var(--main); position: absolute; z-index: 0; }
         
-        /* 削除ボタン */
         .img-delete-btn {
             position: absolute; top: 10px; right: 10px; width: 25px; height: 25px; 
             background: rgba(0,0,0,0.7); border: 1px solid var(--main); color: var(--main);
@@ -196,7 +196,6 @@
 
             <div class="main-content">
                 <div class="left-column">
-                    <!-- 画像枠修正箇所 -->
                     <div class="photo-frame" id="photo-frame">
                         <div class="img-delete-btn" id="img-delete-btn">✕</div>
                         <input type="file" id="img-up" hidden accept="image/*">
@@ -245,7 +244,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
     const SECRET_PASS = "mirumo"; 
-    let scale = 1, posX = 0, posY = 0, isDragging = false, startX, startY;
+    let scale = 1, posX = 0, posY = 0;
+    let isDragging = false, startX = 0, startY = 0;
+    let initialDist = 0;
 
     function checkPass() {
         const input = document.getElementById('pass-input').value;
@@ -259,7 +260,6 @@
 
     document.getElementById('pass-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') checkPass(); });
 
-    // 画像操作ロジック
     const photoFrame = document.getElementById('photo-frame');
     const imgUp = document.getElementById('img-up');
     const deleteBtn = document.getElementById('img-delete-btn');
@@ -281,7 +281,6 @@
                 deleteBtn.style.display = 'flex';
                 scale = 1; posX = 0; posY = 0;
                 applyTransform(img);
-                initImgEvents(img);
             };
             reader.readAsDataURL(file);
         }
@@ -296,40 +295,86 @@
     };
 
     function applyTransform(img) {
+        if (!img) return;
         img.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
     }
 
-    function initImgEvents(img) {
-        photoFrame.onwheel = (e) => {
-            e.preventDefault();
-            scale = Math.min(Math.max(0.1, scale + (e.deltaY > 0 ? -0.1 : 0.1)), 10);
-            applyTransform(img);
-        };
-
-        const start = (e) => {
-            isDragging = true;
-            const cx = e.clientX || e.touches[0].clientX;
-            const cy = e.clientY || e.touches[0].clientY;
-            startX = cx - posX; startY = cy - posY;
-        };
-        const move = (e) => {
-            if (!isDragging) return;
-            const cx = e.clientX || e.touches[0].clientX;
-            const cy = e.clientY || e.touches[0].clientY;
-            posX = cx - startX; posY = cy - startY;
-            applyTransform(img);
-        };
-        const end = () => isDragging = false;
-
-        img.addEventListener('mousedown', start);
-        window.addEventListener('mousemove', move);
-        window.addEventListener('mouseup', end);
-        img.addEventListener('touchstart', start);
-        window.addEventListener('touchmove', move);
-        window.addEventListener('touchend', end);
+    function getDist(t1, t2) {
+        return Math.sqrt(Math.pow(t1.clientX - t2.clientX, 2) + Math.pow(t1.clientY - t2.clientY, 2));
     }
 
-    // 既存の種族データと更新ロジック
+    // --- 改良版マウス操作ロジック ---
+    photoFrame.addEventListener('mousedown', (e) => {
+        if (!document.getElementById('target-img')) return;
+        isDragging = true;
+        startX = e.clientX - posX; startY = e.clientY - posY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        posX = e.clientX - startX; posY = e.clientY - startY;
+        applyTransform(document.getElementById('target-img'));
+    });
+
+    // --- 改良版スマホ・タッチ操作ロジック ---
+    photoFrame.addEventListener('touchstart', (e) => {
+        const img = document.getElementById('target-img');
+        if (!img) return;
+        
+        // 1本指ならドラッグ準備
+        if (e.touches.length === 1) {
+            isDragging = true;
+            startX = e.touches[0].clientX - posX;
+            startY = e.touches[0].clientY - posY;
+        } 
+        // 2本指ならズーム準備
+        else if (e.touches.length === 2) {
+            isDragging = false; 
+            initialDist = getDist(e.touches[0], e.touches[1]);
+        }
+    }, {passive: false});
+
+    photoFrame.addEventListener('touchmove', (e) => {
+        const img = document.getElementById('target-img');
+        if (!img) return;
+        
+        // 枠内を動かしている時はブラウザのスクロールを止める
+        e.preventDefault();
+
+        if (e.touches.length === 1 && isDragging) {
+            posX = e.touches[0].clientX - startX;
+            posY = e.touches[0].clientY - startY;
+        } 
+        else if (e.touches.length === 2) {
+            const currentDist = getDist(e.touches[0], e.touches[1]);
+            const zoomFactor = currentDist / initialDist;
+            scale = Math.min(Math.max(0.1, scale * zoomFactor), 10);
+            initialDist = currentDist;
+        }
+        applyTransform(img);
+    }, {passive: false});
+
+    window.addEventListener('mouseup', () => isDragging = false);
+    window.addEventListener('touchend', (e) => {
+        if (e.touches.length === 0) {
+            isDragging = false;
+        } else if (e.touches.length === 1) {
+            // 2本から1本になった時にドラッグが暴発しないよう、開始点を再設定
+            isDragging = true;
+            startX = e.touches[0].clientX - posX;
+            startY = e.touches[0].clientY - posY;
+        }
+    });
+
+    // PC用ホイールズーム
+    photoFrame.onwheel = (e) => {
+        const img = document.getElementById('target-img');
+        if (!img) return;
+        e.preventDefault();
+        scale = Math.min(Math.max(0.1, scale + (e.deltaY > 0 ? -0.1 : 0.1)), 10);
+        applyTransform(img);
+    };
+
     const allRanks = ['S','A','B','C','D','E'];
     const dataset = {
         human: {
