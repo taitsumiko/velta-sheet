@@ -157,13 +157,32 @@
             .save-btn { width: 100%; padding: 15px 10px; font-size: 14px; white-space: normal; line-height: 1.2; }
         }
 
-        /* 保存時用強制スタイル */
-        .capturing { width: 940px !important; position: absolute; left: -9999px; top: 0; }
-        .capturing .sheet { width: 900px !important; padding: 60px !important; }
-        .capturing .header, .capturing .main-content { flex-direction: row !important; display: flex !important; }
-        .capturing .inputs { margin-top: -60px !important; }
+        /* 保存時用強制スタイル（見切れ防止の要） */
+        .capturing { 
+            position: fixed !important; 
+            left: 0 !important; 
+            top: 0 !important; 
+            width: 940px !important; 
+            z-index: -1;
+            background: #000;
+        }
+        .capturing .sheet { 
+            width: 900px !important; 
+            padding: 60px !important; 
+            display: block !important; 
+            border: 1px solid var(--border) !important;
+        }
+        .capturing .header, .capturing .main-content { 
+            flex-direction: row !important; 
+            display: flex !important; 
+            gap: 50px !important;
+        }
+        .capturing .header-left { flex: 0 0 320px !important; }
+        .capturing .header-right { flex: 1 !important; }
+        .capturing .inputs { margin-top: -60px !important; display: flex !important; }
         .capturing .photo-frame { width: 320px !important; height: 500px !important; }
         .capturing .trait-panel { width: 400px !important; }
+        .capturing .footer { flex-direction: row !important; display: flex !important; }
     </style>
 </head>
 <body>
@@ -253,7 +272,6 @@
     let isDragging = false, startX = 0, startY = 0;
     let initialDist = 0;
 
-    // ログイン処理
     function checkPass() {
         const input = document.getElementById('pass-input').value;
         if (input === SECRET_PASS) {
@@ -264,7 +282,6 @@
         } else { alert("合言葉が違います。"); }
     }
 
-    // エンターキー監視の復活
     document.getElementById('pass-input').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') checkPass();
     });
@@ -312,7 +329,6 @@
         return Math.sqrt(Math.pow(t1.clientX - t2.clientX, 2) + Math.pow(t1.clientY - t2.clientY, 2));
     }
 
-    // タッチ操作
     photoFrame.addEventListener('touchstart', (e) => {
         const img = document.getElementById('target-img');
         if (!img) return;
@@ -349,7 +365,6 @@
         if (e.touches.length === 0) isDragging = false;
     });
 
-    // マウス操作
     photoFrame.addEventListener('mousedown', (e) => {
         if (!document.getElementById('target-img')) return;
         isDragging = true;
@@ -369,23 +384,32 @@
         applyTransform(img);
     };
 
-    // 保存処理
+    // 保存処理（見切れ対策版）
     document.getElementById('save-btn').onclick = function() {
         const target = document.getElementById('capture-target');
-        this.innerText = "GENERATING...";
+        const btn = this;
+        btn.innerText = "GENERATING...";
+        
+        // 保存時のみ一時的にクラスを付与
         target.classList.add('capturing');
 
-        html2canvas(target, { 
-            backgroundColor: '#000', scale: 2, useCORS: true,
-            width: 900, windowWidth: 900
-        }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = 'VELTA_Sheet.jpg';
-            link.href = canvas.toDataURL('image/jpeg', 0.9);
-            link.click();
-            target.classList.remove('capturing');
-            this.innerText = "SAVE AS IMAGE / 画像として保存";
-        });
+        // ブラウザにレンダリングを待たせるためのわずかな遅延
+        setTimeout(() => {
+            html2canvas(target, { 
+                backgroundColor: '#000', 
+                scale: 2, 
+                useCORS: true,
+                width: 940,       // 撮影領域を固定
+                windowWidth: 940  // 仮想のブラウザ幅を固定
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'VELTA_Sheet.jpg';
+                link.href = canvas.toDataURL('image/jpeg', 0.9);
+                link.click();
+                target.classList.remove('capturing');
+                btn.innerText = "SAVE AS IMAGE / 画像として保存";
+            });
+        }, 100);
     };
 
     const allRanks = ['S','A','B','C','D','E'];
