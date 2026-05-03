@@ -45,7 +45,6 @@
         }
         
         .sheet-container { padding: 20px; background: #000; }
-        /* PC用基本サイズ：ここを基準に保存される */
         .sheet { 
             width: 900px; padding: 60px; background: var(--bg); border: 1px solid var(--border); 
             box-sizing: border-box; position: relative;
@@ -141,29 +140,15 @@
             box-shadow: 0 0 20px var(--glow); transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); white-space: nowrap;
         }
 
-        /* 閲覧用（スマホ）レスポンシブ：保存時には無視される */
         @media (max-width: 900px) {
             body { padding: 0; }
-            .sheet-container:not(.capturing) .sheet { 
-                width: 100vw; padding: 30px 20px; border: none; 
-            }
-            .sheet-container:not(.capturing) .header, 
-            .sheet-container:not(.capturing) .main-content { 
-                flex-direction: column; gap: 30px; 
-            }
-            .sheet-container:not(.capturing) .header-left, 
-            .sheet-container:not(.capturing) .header-right, 
-            .sheet-container:not(.capturing) .left-column, 
-            .sheet-container:not(.capturing) .trait-panel, 
-            .sheet-container:not(.capturing) .special-option-panel, 
-            .sheet-container:not(.capturing) .photo-frame { 
-                width: 100%; flex: none; 
-            }
+            .sheet-container:not(.capturing) .sheet { width: 100vw; padding: 30px 20px; border: none; }
+            .sheet-container:not(.capturing) .header, .sheet-container:not(.capturing) .main-content { flex-direction: column; gap: 30px; }
+            .sheet-container:not(.capturing) .header-left, .sheet-container:not(.capturing) .header-right, 
+            .sheet-container:not(.capturing) .left-column, .sheet-container:not(.capturing) .trait-panel, 
+            .sheet-container:not(.capturing) .special-option-panel, .sheet-container:not(.capturing) .photo-frame { width: 100%; flex: none; }
             .sheet-container:not(.capturing) .inputs { margin-top: 0 !important; }
-            .controls { 
-                position: relative; left: 0; top: 0; transform: none; 
-                flex-direction: row; flex-wrap: wrap; padding: 10px; width: 100%; box-sizing: border-box; background: #000; gap: 8px;
-            }
+            .controls { position: relative; left: 0; top: 0; transform: none; flex-direction: row; flex-wrap: wrap; padding: 10px; width: 100%; box-sizing: border-box; background: #000; gap: 8px; }
             .controls button { writing-mode: horizontal-tb; padding: 10px 5px; flex: 1; min-width: 100px; font-size: 9px; height: auto; min-height: 45px; }
             .sheet-container:not(.capturing) .photo-frame { height: 450px; }
             h1 { font-size: 36px; }
@@ -172,10 +157,10 @@
             .save-btn { width: 100%; padding: 15px 10px; font-size: 14px; white-space: normal; line-height: 1.2; }
         }
 
-        /* 保存時専用の強制レイアウト設定 */
-        .capturing { width: 940px !important; position: absolute; left: -9999px; }
+        /* 保存時用強制スタイル */
+        .capturing { width: 940px !important; position: absolute; left: -9999px; top: 0; }
         .capturing .sheet { width: 900px !important; padding: 60px !important; }
-        .capturing .header, .capturing .main-content { flex-direction: row !important; }
+        .capturing .header, .capturing .main-content { flex-direction: row !important; display: flex !important; }
         .capturing .inputs { margin-top: -60px !important; }
         .capturing .photo-frame { width: 320px !important; height: 500px !important; }
         .capturing .trait-panel { width: 400px !important; }
@@ -198,7 +183,6 @@
         <button onclick="update('horn', this)">HORNED / 角持ち</button>
     </div>
 
-    <!-- 閲覧用コンテナ -->
     <div class="sheet-container" id="capture-target">
         <div class="sheet">
             <div class="header">
@@ -269,6 +253,7 @@
     let isDragging = false, startX = 0, startY = 0;
     let initialDist = 0;
 
+    // ログイン処理
     function checkPass() {
         const input = document.getElementById('pass-input').value;
         if (input === SECRET_PASS) {
@@ -278,6 +263,11 @@
             setTimeout(() => main.style.opacity = '1', 10);
         } else { alert("合言葉が違います。"); }
     }
+
+    // エンターキー監視の復活
+    document.getElementById('pass-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') checkPass();
+    });
 
     const photoFrame = document.getElementById('photo-frame');
     const imgUp = document.getElementById('img-up');
@@ -322,7 +312,7 @@
         return Math.sqrt(Math.pow(t1.clientX - t2.clientX, 2) + Math.pow(t1.clientY - t2.clientY, 2));
     }
 
-    // タッチ操作（スマホ）
+    // タッチ操作
     photoFrame.addEventListener('touchstart', (e) => {
         const img = document.getElementById('target-img');
         if (!img) return;
@@ -359,7 +349,7 @@
         if (e.touches.length === 0) isDragging = false;
     });
 
-    // PCマウス操作
+    // マウス操作
     photoFrame.addEventListener('mousedown', (e) => {
         if (!document.getElementById('target-img')) return;
         isDragging = true;
@@ -379,27 +369,21 @@
         applyTransform(img);
     };
 
-    // 保存処理（スマホでもPCレイアウトで出力）
+    // 保存処理
     document.getElementById('save-btn').onclick = function() {
         const target = document.getElementById('capture-target');
         this.innerText = "GENERATING...";
-        
-        // 保存時だけ一時的にクラスを付与してレイアウトをPCサイズに固定
         target.classList.add('capturing');
 
         html2canvas(target, { 
-            backgroundColor: '#000', 
-            scale: 2, 
-            useCORS: true,
-            width: 900,  // 保存する幅を明示的に指定
-            windowWidth: 900 // 仮想的なウィンドウ幅
+            backgroundColor: '#000', scale: 2, useCORS: true,
+            width: 900, windowWidth: 900
         }).then(canvas => {
             const link = document.createElement('a');
             link.download = 'VELTA_Sheet.jpg';
             link.href = canvas.toDataURL('image/jpeg', 0.9);
             link.click();
-            
-            target.classList.remove('capturing'); // 終わったら戻す
+            target.classList.remove('capturing');
             this.innerText = "SAVE AS IMAGE / 画像として保存";
         });
     };
