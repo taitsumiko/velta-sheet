@@ -45,6 +45,7 @@
         }
         
         .sheet-container { padding: 20px; background: #000; }
+        /* PC用基本サイズ：ここを基準に保存される */
         .sheet { 
             width: 900px; padding: 60px; background: var(--bg); border: 1px solid var(--border); 
             box-sizing: border-box; position: relative;
@@ -139,32 +140,52 @@
             font-weight: bold; cursor: pointer; letter-spacing: 0.1em;
             box-shadow: 0 0 20px var(--glow); transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); white-space: nowrap;
         }
-        .save-btn:hover { transform: scale(1.05); box-shadow: 0 0 30px var(--glow); }
 
+        /* 閲覧用（スマホ）レスポンシブ：保存時には無視される */
         @media (max-width: 900px) {
             body { padding: 0; }
-            .sheet { width: 100vw; padding: 30px 20px; border: none; }
-            .header, .main-content { flex-direction: column; gap: 30px; }
-            .header-left, .header-right, .left-column, .trait-panel, .special-option-panel, .photo-frame { width: 100%; flex: none; }
-            .inputs { margin-top: 0 !important; }
+            .sheet-container:not(.capturing) .sheet { 
+                width: 100vw; padding: 30px 20px; border: none; 
+            }
+            .sheet-container:not(.capturing) .header, 
+            .sheet-container:not(.capturing) .main-content { 
+                flex-direction: column; gap: 30px; 
+            }
+            .sheet-container:not(.capturing) .header-left, 
+            .sheet-container:not(.capturing) .header-right, 
+            .sheet-container:not(.capturing) .left-column, 
+            .sheet-container:not(.capturing) .trait-panel, 
+            .sheet-container:not(.capturing) .special-option-panel, 
+            .sheet-container:not(.capturing) .photo-frame { 
+                width: 100%; flex: none; 
+            }
+            .sheet-container:not(.capturing) .inputs { margin-top: 0 !important; }
             .controls { 
                 position: relative; left: 0; top: 0; transform: none; 
                 flex-direction: row; flex-wrap: wrap; padding: 10px; width: 100%; box-sizing: border-box; background: #000; gap: 8px;
             }
             .controls button { writing-mode: horizontal-tb; padding: 10px 5px; flex: 1; min-width: 100px; font-size: 9px; height: auto; min-height: 45px; }
-            .photo-frame { height: 450px; }
+            .sheet-container:not(.capturing) .photo-frame { height: 450px; }
             h1 { font-size: 36px; }
-            .footer { flex-direction: column; gap: 10px; text-align: left; }
+            .sheet-container:not(.capturing) .footer { flex-direction: column; gap: 10px; text-align: left; }
             .save-area { padding: 0 20px; box-sizing: border-box; }
             .save-btn { width: 100%; padding: 15px 10px; font-size: 14px; white-space: normal; line-height: 1.2; }
         }
+
+        /* 保存時専用の強制レイアウト設定 */
+        .capturing { width: 940px !important; position: absolute; left: -9999px; }
+        .capturing .sheet { width: 900px !important; padding: 60px !important; }
+        .capturing .header, .capturing .main-content { flex-direction: row !important; }
+        .capturing .inputs { margin-top: -60px !important; }
+        .capturing .photo-frame { width: 320px !important; height: 500px !important; }
+        .capturing .trait-panel { width: 400px !important; }
     </style>
 </head>
 <body>
 
 <div id="auth-screen">
     <div class="auth-box">
-        <h2>ACCESS RESTRICTED<br>合言葉を入力してください</h2>
+        <h2>ACCESS RESTRICTED</h2>
         <input type="password" id="pass-input" placeholder="Keyword...">
         <button onclick="checkPass()">ACCESS</button>
     </div>
@@ -177,6 +198,7 @@
         <button onclick="update('horn', this)">HORNED / 角持ち</button>
     </div>
 
+    <!-- 閲覧用コンテナ -->
     <div class="sheet-container" id="capture-target">
         <div class="sheet">
             <div class="header">
@@ -257,8 +279,6 @@
         } else { alert("合言葉が違います。"); }
     }
 
-    document.getElementById('pass-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') checkPass(); });
-
     const photoFrame = document.getElementById('photo-frame');
     const imgUp = document.getElementById('img-up');
     const deleteBtn = document.getElementById('img-delete-btn');
@@ -302,30 +322,15 @@
         return Math.sqrt(Math.pow(t1.clientX - t2.clientX, 2) + Math.pow(t1.clientY - t2.clientY, 2));
     }
 
-    // マウス操作
-    photoFrame.addEventListener('mousedown', (e) => {
-        if (!document.getElementById('target-img')) return;
-        isDragging = true;
-        startX = e.clientX - posX; startY = e.clientY - posY;
-    });
-
-    window.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        posX = e.clientX - startX; posY = e.clientY - startY;
-        applyTransform(document.getElementById('target-img'));
-    });
-
     // タッチ操作（スマホ）
     photoFrame.addEventListener('touchstart', (e) => {
         const img = document.getElementById('target-img');
         if (!img) return;
-        
         if (e.touches.length === 1) {
             isDragging = true;
             startX = e.touches[0].clientX - posX;
             startY = e.touches[0].clientY - posY;
-        } 
-        else if (e.touches.length === 2) {
+        } else if (e.touches.length === 2) {
             isDragging = false; 
             initialDist = getDist(e.touches[0], e.touches[1]);
         }
@@ -334,14 +339,11 @@
     photoFrame.addEventListener('touchmove', (e) => {
         const img = document.getElementById('target-img');
         if (!img) return;
-        
-        e.preventDefault(); // ブラウザのスクロールを防止
-
+        e.preventDefault();
         if (e.touches.length === 1 && isDragging) {
             posX = e.touches[0].clientX - startX;
             posY = e.touches[0].clientY - startY;
-        } 
-        else if (e.touches.length === 2) {
+        } else if (e.touches.length === 2) {
             const currentDist = getDist(e.touches[0], e.touches[1]);
             if (initialDist > 0) {
                 const ratio = currentDist / initialDist;
@@ -352,18 +354,54 @@
         applyTransform(img);
     }, {passive: false});
 
-    window.addEventListener('mouseup', () => isDragging = false);
     window.addEventListener('touchend', (e) => {
         if (e.touches.length < 2) initialDist = 0;
         if (e.touches.length === 0) isDragging = false;
     });
 
+    // PCマウス操作
+    photoFrame.addEventListener('mousedown', (e) => {
+        if (!document.getElementById('target-img')) return;
+        isDragging = true;
+        startX = e.clientX - posX; startY = e.clientY - posY;
+    });
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        posX = e.clientX - startX; posY = e.clientY - startY;
+        applyTransform(document.getElementById('target-img'));
+    });
+    window.addEventListener('mouseup', () => isDragging = false);
     photoFrame.onwheel = (e) => {
         const img = document.getElementById('target-img');
         if (!img) return;
         e.preventDefault();
         scale = Math.min(Math.max(0.1, scale + (e.deltaY > 0 ? -0.1 : 0.1)), 10);
         applyTransform(img);
+    };
+
+    // 保存処理（スマホでもPCレイアウトで出力）
+    document.getElementById('save-btn').onclick = function() {
+        const target = document.getElementById('capture-target');
+        this.innerText = "GENERATING...";
+        
+        // 保存時だけ一時的にクラスを付与してレイアウトをPCサイズに固定
+        target.classList.add('capturing');
+
+        html2canvas(target, { 
+            backgroundColor: '#000', 
+            scale: 2, 
+            useCORS: true,
+            width: 900,  // 保存する幅を明示的に指定
+            windowWidth: 900 // 仮想的なウィンドウ幅
+        }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'VELTA_Sheet.jpg';
+            link.href = canvas.toDataURL('image/jpeg', 0.9);
+            link.click();
+            
+            target.classList.remove('capturing'); // 終わったら戻す
+            this.innerText = "SAVE AS IMAGE / 画像として保存";
+        });
     };
 
     const allRanks = ['S','A','B','C','D','E'];
@@ -444,18 +482,6 @@
             eb.appendChild(i);
         });
     }
-
-    document.getElementById('save-btn').onclick = function() {
-        const target = document.getElementById('capture-target');
-        this.innerText = "GENERATING...";
-        html2canvas(target, { backgroundColor: '#000', scale: 2, useCORS: true }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = 'Character_Sheet.jpg';
-            link.href = canvas.toDataURL('image/jpeg', 0.9);
-            link.click();
-            this.innerText = "SAVE AS IMAGE / 画像として保存";
-        });
-    };
 
     update('human', document.querySelector('#race-selector button'));
 </script>
