@@ -83,7 +83,6 @@
         .main-content { display: flex; gap: 50px; margin-top: 10px; align-items: flex-start; }
         .left-column { flex: 0 0 320px; display: flex; flex-direction: column; gap: 20px; }
         
-        /* スマホでの画面スクロールを完全に阻止するための設定 */
         .photo-frame { 
             width: 320px; height: 500px; border: 1px solid var(--border); background: #000; 
             display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; overflow: hidden;
@@ -303,7 +302,7 @@
         return Math.sqrt(Math.pow(t1.clientX - t2.clientX, 2) + Math.pow(t1.clientY - t2.clientY, 2));
     }
 
-    // --- 改良版マウス操作ロジック ---
+    // マウス操作
     photoFrame.addEventListener('mousedown', (e) => {
         if (!document.getElementById('target-img')) return;
         isDragging = true;
@@ -316,18 +315,16 @@
         applyTransform(document.getElementById('target-img'));
     });
 
-    // --- 改良版スマホ・タッチ操作ロジック ---
+    // タッチ操作（スマホ）
     photoFrame.addEventListener('touchstart', (e) => {
         const img = document.getElementById('target-img');
         if (!img) return;
         
-        // 1本指ならドラッグ準備
         if (e.touches.length === 1) {
             isDragging = true;
             startX = e.touches[0].clientX - posX;
             startY = e.touches[0].clientY - posY;
         } 
-        // 2本指ならズーム準備
         else if (e.touches.length === 2) {
             isDragging = false; 
             initialDist = getDist(e.touches[0], e.touches[1]);
@@ -338,8 +335,7 @@
         const img = document.getElementById('target-img');
         if (!img) return;
         
-        // 枠内を動かしている時はブラウザのスクロールを止める
-        e.preventDefault();
+        e.preventDefault(); // ブラウザのスクロールを防止
 
         if (e.touches.length === 1 && isDragging) {
             posX = e.touches[0].clientX - startX;
@@ -347,8 +343,10 @@
         } 
         else if (e.touches.length === 2) {
             const currentDist = getDist(e.touches[0], e.touches[1]);
-            const zoomFactor = currentDist / initialDist;
-            scale = Math.min(Math.max(0.1, scale * zoomFactor), 10);
+            if (initialDist > 0) {
+                const ratio = currentDist / initialDist;
+                scale = Math.min(Math.max(0.1, scale * ratio), 10);
+            }
             initialDist = currentDist;
         }
         applyTransform(img);
@@ -356,17 +354,10 @@
 
     window.addEventListener('mouseup', () => isDragging = false);
     window.addEventListener('touchend', (e) => {
-        if (e.touches.length === 0) {
-            isDragging = false;
-        } else if (e.touches.length === 1) {
-            // 2本から1本になった時にドラッグが暴発しないよう、開始点を再設定
-            isDragging = true;
-            startX = e.touches[0].clientX - posX;
-            startY = e.touches[0].clientY - posY;
-        }
+        if (e.touches.length < 2) initialDist = 0;
+        if (e.touches.length === 0) isDragging = false;
     });
 
-    // PC用ホイールズーム
     photoFrame.onwheel = (e) => {
         const img = document.getElementById('target-img');
         if (!img) return;
