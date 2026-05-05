@@ -392,7 +392,6 @@
                 photoFrame.appendChild(img);
                 deleteBtn.style.display = 'flex';
                 
-                // 初期のスケール計算：枠に収まる最小スケールを設定
                 img.onload = () => {
                     const minScale = Math.max(320 / img.naturalWidth, 500 / img.naturalHeight);
                     scale = minScale; posX = 0; posY = 0;
@@ -411,8 +410,22 @@
         deleteBtn.style.display = 'none';
     };
 
+    // 画像が枠からはみ出ないように位置を制限する関数
     function applyTransform(img) {
         if (!img) return;
+        
+        // 現在のスケールでの画像サイズ
+        const curW = img.naturalWidth * scale;
+        const curH = img.naturalHeight * scale;
+        
+        // 移動可能範囲の計算 (中心からのズレの許容値)
+        const limitX = Math.max(0, (curW - 320) / 2);
+        const limitY = Math.max(0, (curH - 500) / 2);
+        
+        // 制限を適用
+        posX = Math.min(Math.max(posX, -limitX), limitX);
+        posY = Math.min(Math.max(posY, -limitY), limitY);
+        
         img.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
     }
 
