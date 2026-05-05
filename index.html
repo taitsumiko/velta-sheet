@@ -391,8 +391,13 @@
                 img.id = "target-img";
                 photoFrame.appendChild(img);
                 deleteBtn.style.display = 'flex';
-                scale = 1; posX = 0; posY = 0;
-                applyTransform(img);
+                
+                // 初期のスケール計算：枠に収まる最小スケールを設定
+                img.onload = () => {
+                    const minScale = Math.max(320 / img.naturalWidth, 500 / img.naturalHeight);
+                    scale = minScale; posX = 0; posY = 0;
+                    applyTransform(img);
+                };
             };
             reader.readAsDataURL(file);
         }
@@ -439,7 +444,8 @@
             const currentDist = getDist(e.touches[0], e.touches[1]);
             if (initialDist > 0) {
                 const ratio = currentDist / initialDist;
-                scale = Math.min(Math.max(0.1, scale * ratio), 10);
+                const minScale = Math.max(320 / img.naturalWidth, 500 / img.naturalHeight);
+                scale = Math.min(Math.max(minScale, scale * ratio), 10);
             }
             initialDist = currentDist;
         }
@@ -471,7 +477,8 @@
         const img = document.getElementById('target-img');
         if (!img) return;
         e.preventDefault();
-        scale = Math.min(Math.max(0.1, scale + (e.deltaY > 0 ? -0.1 : 0.1)), 10);
+        const minScale = Math.max(320 / img.naturalWidth, 500 / img.naturalHeight);
+        scale = Math.min(Math.max(minScale, scale + (e.deltaY > 0 ? -0.1 : 0.1)), 10);
         applyTransform(img);
     };
 
