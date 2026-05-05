@@ -8,7 +8,7 @@
         :root { 
             --main: #4fc3f7; 
             --bg: #050a14; 
-            --border: rgba(79, 195, 247, 0.4);
+            --border: rgba(79, 195, 247, 0.5); /* 境界線を少し明るく */
             --glow: rgba(79, 195, 247, 0.8);
         }
         
@@ -63,7 +63,7 @@
             width: 320px; border: 1px solid var(--border); padding: 15px 20px; 
             background: rgba(0,0,0,0.2); display: none; box-sizing: border-box; margin-top: 10px;
         }
-        .special-option-title { font-size: 9px; opacity: 0.6; margin-bottom: 10px; display: block; letter-spacing: 0.1em; }
+        .special-option-title { font-size: 9px; opacity: 0.8; margin-bottom: 10px; display: block; letter-spacing: 0.15em; }
         .special-grid { display: flex; flex-direction: column; gap: 8px; }
         .spec-item { display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; opacity: 0.7; transition: transform 0.2s; }
         .spec-item:hover { transform: translateX(5px); opacity: 1; }
@@ -83,7 +83,6 @@
         .main-content { display: flex; gap: 50px; margin-top: 10px; align-items: flex-start; }
         .left-column { flex: 0 0 320px; display: flex; flex-direction: column; gap: 20px; }
         
-        /* 基本の写真枠設定 */
         .photo-frame { 
             width: 320px; 
             height: 500px; 
@@ -99,7 +98,17 @@
             touch-action: none; 
         }
         #target-img { position: absolute; cursor: move; user-select: none; z-index: 1; max-width: none; pointer-events: none; }
-        .photo-frame::after { content: "PORTRAIT / 写真"; font-size: 10px; opacity: 0.4; color: var(--main); position: absolute; z-index: 0; }
+        /* 写真ラベルの読みやすさ調整 */
+        .photo-frame::after { 
+            content: "PORTRAIT / 写真"; 
+            font-size: 11px; 
+            opacity: 0.8; 
+            color: var(--main); 
+            position: absolute; 
+            z-index: 0; 
+            letter-spacing: 0.2em;
+            font-weight: bold;
+        }
         
         .img-delete-btn {
             position: absolute; top: 10px; right: 10px; width: 25px; height: 25px; 
@@ -108,7 +117,17 @@
             cursor: pointer; font-family: sans-serif; font-weight: bold;
         }
 
-        .rank-label { font-family: "Helvetica Neue", sans-serif; font-size: 9px; opacity: 0.7; margin-bottom: 15px; display: block; color: var(--main); letter-spacing: 0.1em; font-weight: 600; }
+        /* 項目ラベルの読みやすさ調整 */
+        .rank-label { 
+            font-family: "Helvetica Neue", sans-serif; 
+            font-size: 10px; 
+            opacity: 0.9; 
+            margin-bottom: 15px; 
+            display: block; 
+            color: var(--main); 
+            letter-spacing: 0.15em; 
+            font-weight: 600; 
+        }
         .rank-grid { display: flex; gap: 10px; }
         .rank-item { 
             width: 45px; height: 45px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
@@ -120,25 +139,48 @@
 
         .inputs { flex: 1; display: flex; flex-direction: column; gap: 28px; margin-top: -60px; }
         .field { border-bottom: 1px solid var(--border); padding-bottom: 8px; position: relative; }
-        .field label { font-family: "Helvetica Neue", sans-serif; font-size: 9px; opacity: 0.8; display: block; margin-bottom: 10px; color: var(--main); }
+        /* 入力項目のラベル（NAMEなど）調整 */
+        .field label { 
+            font-family: "Helvetica Neue", sans-serif; 
+            font-size: 10px; 
+            opacity: 0.9; 
+            display: block; 
+            margin-bottom: 10px; 
+            color: var(--main); 
+            letter-spacing: 0.15em;
+            font-weight: bold;
+        }
         input, textarea { background: transparent; border: none; color: var(--main); width: 100%; outline: none; font-size: 20px; font-family: inherit; }
-        textarea { font-size: 16px; line-height: 1.6; resize: none; }
+        
+        .auto-resize-textarea { 
+            font-size: 20px; 
+            line-height: 1.5; 
+            resize: none; 
+            overflow: hidden; 
+            display: block;
+        }
+        #details-input { height: 180px; }
+        #bio-input { height: 120px; }
 
         .age-field { display: flex; align-items: flex-end; justify-content: flex-end; }
         .age-field input { text-align: right; padding: 0; margin: 0 4px 0 0; line-height: 1; width: 60px; }
-        .age-unit { font-size: 16px; opacity: 0.8; font-family: "YuMincho", serif; margin-bottom: 2px; }
+        .age-unit { font-size: 16px; opacity: 0.9; font-family: "YuMincho", serif; margin-bottom: 2px; }
+
+        .gender-grid { display: flex; gap: 15px; margin-top: 5px; }
+        .gender-item { font-size: 22px; cursor: pointer; opacity: 0.3; transition: 0.3s; }
+        .gender-item.active { opacity: 1; text-shadow: 0 0 10px var(--glow); }
 
         .energy-grid { display: flex; gap: 12px; flex-wrap: wrap; }
         .energy-item { border: 1px solid var(--border); padding: 8px 20px; cursor: pointer; font-size: 12px; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .energy-item:hover { transform: scale(1.05); background: rgba(255,255,255,0.05); }
         .energy-item.active { background: var(--main); color: #000; font-weight: 600; box-shadow: 0 0 20px var(--glow); transform: scale(1.05); }
 
-        .footer { margin-top: 50px; display: flex; justify-content: space-between; font-size: 10px; border-top: 1px solid var(--border); padding-top: 30px; color: var(--main); opacity: 0.6; line-height: 1.5; }
+        .footer { margin-top: 50px; display: flex; justify-content: space-between; font-size: 10px; border-top: 1px solid var(--border); padding-top: 30px; color: var(--main); opacity: 0.7; line-height: 1.5; }
 
         .controls { position: fixed; left: 30px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 15px; z-index: 100; }
         .controls button { 
             background: transparent; border: 1px solid var(--border); color: var(--main); padding: 20px 8px; 
-            cursor: pointer; font-size: 11px; writing-mode: vertical-rl; opacity: 0.4; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer; font-size: 11px; writing-mode: vertical-rl; opacity: 0.5; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         .controls button:hover { opacity: 1; transform: scale(1.1) translateX(5px); background: rgba(255,255,255,0.05); }
         .controls button.active { opacity: 1; background: rgba(0,0,0,0.5); border-color: var(--main); box-shadow: 0 0 15px var(--glow), inset 0 0 10px var(--glow); text-shadow: 0 0 5px var(--main); transform: scale(1.05); }
@@ -150,7 +192,6 @@
             box-shadow: 0 0 20px var(--glow); transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); white-space: nowrap;
         }
 
-        /* スマホ向けレスポンシブ設定 */
         @media (max-width: 900px) {
             body { padding: 0; }
             .sheet-container:not(.capturing) .sheet { width: 100vw; padding: 30px 20px; border: none; }
@@ -158,16 +199,13 @@
             .sheet-container:not(.capturing) .header-left, .sheet-container:not(.capturing) .header-right, 
             .sheet-container:not(.capturing) .left-column, .sheet-container:not(.capturing) .trait-panel, 
             .sheet-container:not(.capturing) .special-option-panel { width: 100%; flex: none; }
-            
-            /* 【重要】スマホでの画像枠サイズ固定 */
             .sheet-container:not(.capturing) .photo-frame { 
                 width: 320px !important; 
-                min-width: 320px !important; /* 縮小を禁止 */
+                min-width: 320px !important; 
                 height: 500px !important; 
                 margin: 0 auto; 
-                flex: none; /* Flexboxの影響を完全に除去 */
+                flex: none; 
             }
-
             .sheet-container:not(.capturing) .inputs { margin-top: 0 !important; }
             .controls { position: relative; left: 0; top: 0; transform: none; flex-direction: row; flex-wrap: wrap; padding: 10px; width: 100%; box-sizing: border-box; background: #000; gap: 8px; }
             .controls button { writing-mode: horizontal-tb; padding: 10px 5px; flex: 1; min-width: 100px; font-size: 9px; height: auto; min-height: 45px; }
@@ -177,7 +215,6 @@
             .save-btn { width: 100%; padding: 15px 10px; font-size: 14px; white-space: normal; line-height: 1.2; }
         }
 
-        /* 画像保存用の一時的なスタイル（PCレイアウトを再現） */
         .capturing { position: fixed !important; left: 0 !important; top: 0 !important; width: 940px !important; z-index: -1; background: #000; }
         .capturing .sheet { width: 900px !important; padding: 60px !important; display: block !important; border: 1px solid var(--border) !important; }
         .capturing .header, .capturing .main-content { flex-direction: row !important; display: flex !important; gap: 50px !important; }
@@ -239,27 +276,37 @@
                         <label>NAME / 名前</label>
                         <input type="text" spellcheck="false">
                     </div>
-                    <div style="display:flex; gap:25px;">
-                        <div class="field" style="flex:1;">
-                            <label>AGE / 年齢</label>
+                    
+                    <div style="display:flex; gap:20px; align-items: flex-end;">
+                        <div class="field" style="width: 80px;">
+                            <label>AGE/年齢</label>
                             <div class="age-field">
                                 <input type="text" spellcheck="false">
                                 <span class="age-unit">歳</span>
                             </div>
                         </div>
-                        <div class="field" style="flex:2;">
+                        <div class="field" style="width: 100px;">
+                            <label>HEIGHT/身長</label>
+                            <div class="age-field">
+                                <input type="text" spellcheck="false">
+                                <span class="age-unit">cm</span>
+                            </div>
+                        </div>
+                        <div class="field" style="flex:1;">
                             <label>GENDER / 性別</label>
-                            <input type="text">
+                            <div class="gender-grid">
+                                <div class="gender-item" onclick="gSelect(this)">♂</div>
+                                <div class="gender-item" onclick="gSelect(this)">♀</div>
+                                <div class="gender-item" onclick="gSelect(this)">？</div>
+                            </div>
                         </div>
                     </div>
+
                     <div class="field">
-                        <label>APPEARANCE / 外見的特徴</label>
-                        <textarea rows="3" spellcheck="false"></textarea>
+                        <label>DETAILS / 詳細 </label>
+                        <textarea id="details-input" class="auto-resize-textarea" spellcheck="false" oninput="adjustFontSize(this)"></textarea>
                     </div>
-                    <div class="field">
-                        <label>PERSONALITY / 性格</label>
-                        <textarea rows="3" spellcheck="false"></textarea>
-                    </div>
+
                     <div class="energy-section">
                         <span class="rank-label">PRIMARY ENERGY SOURCE / 主力エネルギー源</span>
                         <div class="energy-grid" id="energy-box"></div>
@@ -280,7 +327,7 @@
 
             <div class="field" style="margin-top:40px;">
                 <label>BIOGRAPHY / 経歴・過去</label>
-                <textarea rows="5" spellcheck="false"></textarea>
+                <textarea id="bio-input" class="auto-resize-textarea" spellcheck="false" oninput="adjustFontSize(this)"></textarea>
             </div>
 
             <div class="footer">
@@ -301,6 +348,13 @@
     let scale = 1, posX = 0, posY = 0;
     let isDragging = false, startX = 0, startY = 0;
     let initialDist = 0;
+
+    function adjustFontSize(el) {
+        el.style.fontSize = "20px";
+        while (el.scrollHeight > el.offsetHeight && parseFloat(el.style.fontSize) > 8) {
+            el.style.fontSize = (parseFloat(el.style.fontSize) - 1) + "px";
+        }
+    }
 
     function checkPass() {
         const input = document.getElementById('pass-input').value;
@@ -433,7 +487,22 @@
                 scale: 2,
                 useCORS: true,
                 width: 940,
-                windowWidth: 940
+                windowWidth: 940,
+                onclone: (clonedDoc) => {
+                    clonedDoc.querySelectorAll('textarea').forEach(tx => {
+                        const div = clonedDoc.createElement('div');
+                        div.style.whiteSpace = 'pre-wrap';
+                        div.style.wordBreak = 'break-all';
+                        div.style.fontSize = tx.style.fontSize || '20px';
+                        div.style.lineHeight = '1.5';
+                        div.style.fontFamily = 'inherit';
+                        div.style.color = 'var(--main)';
+                        div.style.width = '100%';
+                        div.style.height = tx.offsetHeight + 'px';
+                        div.innerText = tx.value;
+                        tx.parentNode.replaceChild(div, tx);
+                    });
+                }
             }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = 'VELTA_Sheet.jpg';
@@ -444,6 +513,12 @@
             });
         }, 100);
     };
+
+    function gSelect(el) {
+        const items = el.parentElement.querySelectorAll('.gender-item');
+        items.forEach(item => item.classList.remove('active'));
+        el.classList.add('active');
+    }
 
     const allRanks = ['S','A','B','C','D','E'];
     const dataset = {
