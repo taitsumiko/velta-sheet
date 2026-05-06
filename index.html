@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VELTA Character Sheet</title>
+    <style>
+        :root { 
+            --main: #4fc3f7; 
+            --bg: #050a14; 
+            --border: rgba(79, 195, 247, 0.5); /* 境界線を少し明るく */
+            --glow: rgba(79, 195, 247, 0.8);
+        }
+        
+        #main-content-wrapper { display: none; opacity: 0; transition: opacity 1s ease; }
+        
+        #auth-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 9999;
+        }
+        .auth-box { text-align: center; border: 1px solid var(--border); padding: 40px; background: #050a14; box-shadow: 0 0 20px var(--glow); }
+        .auth-box h2 { font-size: 12px; letter-spacing: 0.2em; margin-bottom: 20px; color: var(--main); }
+        .auth-box input { 
+            background: transparent; border: 1px solid var(--border); color: #fff; 
+            padding: 10px; text-align: center; font-size: 18px; outline: none; width: 200px;
+        }
+        .auth-box button { 
+            display: block; margin: 20px auto 0; background: var(--main); color: #000;
+            border: none; padding: 10px 30px; font-weight: bold; cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .auth-box button:hover { transform: scale(1.1); }
+
+        body { 
+            background: #000; 
+            color: var(--main); 
+            font-family: "Optima", "YuMincho", "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", serif;
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            padding: 40px 0; 
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .sheet-container { padding: 20px; background: #000; }
+        .sheet { 
+            width: 900px; padding: 60px; background: var(--bg); border: 1px solid var(--border); 
+            box-sizing: border-box; position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        }
+
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+        .header-left { flex: 0 0 320px; min-height: 160px; }
+        .race-tag { 
+            font-family: "Helvetica Neue", sans-serif; font-size: 10px; border: 1px solid var(--main); 
+            color: var(--main); padding: 3px 15px; letter-spacing: 0.15em; display: inline-block; margin-bottom: 10px;
+        }
+        h1 { font-size: 48px; margin: 0 0 15px 0; font-weight: 300; letter-spacing: 0.05em; color: var(--main); }
+
+        .special-option-panel {
+            width: 320px; border: 1px solid var(--border); padding: 15px 20px; 
+            background: rgba(0,0,0,0.2); display: none; box-sizing: border-box; margin-top: 10px;
+        }
+        .special-option-title { font-size: 9px; opacity: 0.8; margin-bottom: 10px; display: block; letter-spacing: 0.15em; }
+        .special-grid { display: flex; flex-direction: column; gap: 8px; }
+        .spec-item { display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; opacity: 0.7; transition: transform 0.2s; }
+        .spec-item:hover { transform: translateX(5px); opacity: 1; }
+        .spec-circle { width: 12px; height: 12px; border: 1px solid var(--main); border-radius: 50%; position: relative; }
+        .spec-item.active { opacity: 1; font-weight: bold; }
+        .spec-item.active .spec-circle::after { 
+            content: ''; position: absolute; top: 2px; left: 2px; width: 6px; height: 6px; 
+            background: var(--main); border-radius: 50%; box-shadow: 0 0 8px var(--glow);
+        }
+
+        .header-right { display: flex; flex-direction: column; gap: 15px; align-items: flex-end; flex: 1; }
+        .trait-panel { 
+            width: 400px; min-height: 80px; font-size: 12px; line-height: 1.7; border: 1px solid var(--border); 
+            padding: 20px; background: rgba(0,0,0,0.2); color: var(--main); box-sizing: border-box;
+        }
+
+        .main-content { display: flex; gap: 50px; margin-top: 10px; align-items: flex-start; }
+        .left-column { flex: 0 0 320px; display: flex; flex-direction: column; gap: 20px; }
+        
+        .photo-frame { 
+            width: 320px; 
+            height: 500px; 
+            flex-shrink: 0;
+            border: 1px solid var(--border); 
+            background: #000; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            cursor: pointer; 
+            position: relative; 
+            overflow: hidden;
+            touch-action: none; 
+        }
+        #target-img { position: absolute; cursor: move; user-select: none; z-index: 1; max-width: none; pointer-events: none; }
+        /* 写真ラベルの読みやすさ調整 */
+        .photo-frame::after { 
+            content: "PORTRAIT / 写真"; 
+            font-size: 11px; 
+            opacity: 0.8; 
+            color: var(--main); 
+            position: absolute; 
+            z-index: 0; 
+            letter-spacing: 0.2em;
+            font-weight: bold;
+        }
+        
+        .img-delete-btn {
+            position: absolute; top: 10px; right: 10px; width: 25px; height: 25px; 
+            background: rgba(0,0,0,0.7); border: 1px solid var(--main); color: var(--main);
+            display: none; align-items: center; justify-content: center; z-index: 100;
+            cursor: pointer; font-family: sans-serif; font-weight: bold;
+        }
+
+        /* 項目ラベルの読みやすさ調整 */
+        .rank-label { 
+            font-family: "Helvetica Neue", sans-serif; 
+            font-size: 10px; 
+            opacity: 0.9; 
+            margin-bottom: 15px; 
+            display: block; 
+            color: var(--main); 
+            letter-spacing: 0.15em; 
+            font-weight: 600; 
+        }
+        .rank-grid { display: flex; gap: 10px; }
+        .rank-item { 
+            width: 45px; height: 45px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+            font-size: 20px; color: var(--main); cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .rank-item:hover:not(.disabled) { transform: scale(1.15); box-shadow: 0 0 15px var(--glow); }
+        .rank-item.active { background: var(--main); color: #000; border-color: var(--main); box-shadow: 0 0 20px var(--glow); transform: scale(1.1); }
+        .rank-item.disabled { opacity: 0.1; cursor: not-allowed; }
+
+        .inputs { flex: 1; display: flex; flex-direction: column; gap: 28px; margin-top: -60px; }
+        .field { border-bottom: 1px solid var(--border); padding-bottom: 8px; position: relative; }
+        /* 入力項目のラベル（NAMEなど）調整 */
+        .field label { 
+            font-family: "Helvetica Neue", sans-serif; 
+            font-size: 10px; 
+            opacity: 0.9; 
+            display: block; 
+            margin-bottom: 10px; 
+            color: var(--main); 
+            letter-spacing: 0.15em;
+            font-weight: bold;
+        }
+        input, textarea { background: transparent; border: none; color: var(--main); width: 100%; outline: none; font-size: 20px; font-family: inherit; }
+        
+        .auto-resize-textarea { 
+            font-size: 20px; 
+            line-height: 1.5; 
+            resize: none; 
+            overflow: hidden; 
+            display: block;
+        }
+        #details-input { height: 180px; }
+        #bio-input { height: 120px; }
+
+        .age-field { display: flex; align-items: flex-end; justify-content: flex-end; }
+        .age-field input { text-align: right; padding: 0; margin: 0 4px 0 0; line-height: 1; width: 60px; }
+        .age-unit { font-size: 16px; opacity: 0.9; font-family: "YuMincho", serif; margin-bottom: 2px; }
+
+        .gender-grid { display: flex; gap: 15px; margin-top: 5px; }
+        .gender-item { font-size: 22px; cursor: pointer; opacity: 0.3; transition: 0.3s; }
+        .gender-item.active { opacity: 1; text-shadow: 0 0 10px var(--glow); }
+
+        .energy-grid { display: flex; gap: 12px; flex-wrap: wrap; }
+        .energy-item { border: 1px solid var(--border); padding: 8px 20px; cursor: pointer; font-size: 12px; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .energy-item:hover { transform: scale(1.05); background: rgba(255,255,255,0.05); }
+        .energy-item.active { background: var(--main); color: #000; font-weight: 600; box-shadow: 0 0 20px var(--glow); transform: scale(1.05); }
+
+        .footer { margin-top: 50px; display: flex; justify-content: space-between; font-size: 10px; border-top: 1px solid var(--border); padding-top: 30px; color: var(--main); opacity: 0.7; line-height: 1.5; }
+
+        .controls { position: fixed; left: 30px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 15px; z-index: 100; }
+        .controls button { 
+            background: transparent; border: 1px solid var(--border); color: var(--main); padding: 20px 8px; 
+            cursor: pointer; font-size: 11px; writing-mode: vertical-rl; opacity: 0.5; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .controls button:hover { opacity: 1; transform: scale(1.1) translateX(5px); background: rgba(255,255,255,0.05); }
+        .controls button.active { opacity: 1; background: rgba(0,0,0,0.5); border-color: var(--main); box-shadow: 0 0 15px var(--glow), inset 0 0 10px var(--glow); text-shadow: 0 0 5px var(--main); transform: scale(1.05); }
+
+        .save-area { margin-top: 40px; margin-bottom: 60px; width: 100%; display: flex; justify-content: center; }
+        .save-btn { 
+            background: var(--main); color: #000; border: none; padding: 15px 50px; 
+            font-weight: bold; cursor: pointer; letter-spacing: 0.1em;
+            box-shadow: 0 0 20px var(--glow); transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); white-space: nowrap;
+        }
+
+        @media (max-width: 900px) {
+            body { padding: 0; }
+            .sheet-container:not(.capturing) .sheet { width: 100vw; padding: 30px 20px; border: none; }
+            .sheet-container:not(.capturing) .header, .sheet-container:not(.capturing) .main-content { flex-direction: column; gap: 30px; }
+            .sheet-container:not(.capturing) .header-left, .sheet-container:not(.capturing) .header-right, 
+            .sheet-container:not(.capturing) .left-column, .sheet-container:not(.capturing) .trait-panel, 
+            .sheet-container:not(.capturing) .special-option-panel { width: 100%; flex: none; }
+            .sheet-container:not(.capturing) .photo-frame { 
+                width: 320px !important; 
+                min-width: 320px !important; 
+                height: 500px !important; 
+                margin: 0 auto; 
+                flex: none; 
+            }
+            .sheet-container:not(.capturing) .inputs { margin-top: 0 !important; }
+            .controls { position: relative; left: 0; top: 0; transform: none; flex-direction: row; flex-wrap: wrap; padding: 10px; width: 100%; box-sizing: border-box; background: #000; gap: 8px; }
+            .controls button { writing-mode: horizontal-tb; padding: 10px 5px; flex: 1; min-width: 100px; font-size: 9px; height: auto; min-height: 45px; }
+            h1 { font-size: 36px; }
+            .sheet-container:not(.capturing) .footer { flex-direction: column; gap: 10px; text-align: left; }
+            .save-area { padding: 0 20px; box-sizing: border-box; }
+            .save-btn { width: 100%; padding: 15px 10px; font-size: 14px; white-space: normal; line-height: 1.2; }
+        }
+
+        .capturing { position: fixed !important; left: 0 !important; top: 0 !important; width: 940px !important; z-index: -1; background: #000; }
+        .capturing .sheet { width: 900px !important; padding: 60px !important; display: block !important; border: 1px solid var(--border) !important; }
+        .capturing .header, .capturing .main-content { flex-direction: row !important; display: flex !important; gap: 50px !important; }
+        .capturing .header-left { flex: 0 0 320px !important; }
+        .capturing .header-right { flex: 1 !important; }
+        .capturing .inputs { margin-top: -60px !important; display: flex !important; }
+        .capturing .photo-frame { width: 320px !important; height: 500px !important; }
+        .capturing .trait-panel { width: 400px !important; }
+        .capturing .footer { flex-direction: row !important; display: flex !important; }
+    </style>
+</head>
+<body>
+
+<div id="auth-screen">
+    <div class="auth-box">
+        <h2>ACCESS RESTRICTED</h2>
+        <input type="password" id="pass-input" placeholder="Keyword...">
+        <button onclick="checkPass()">ACCESS</button>
+    </div>
+</div>
+
+<div id="main-content-wrapper">
+    <div class="controls" id="race-selector">
+        <button onclick="update('human', this)" class="active">HUMAN / 人間</button>
+        <button onclick="update('beast', this)">BEASTKIN / 獣人</button>
+        <button onclick="update('horn', this)">HORNED / 角持ち</button>
+    </div>
+
+    <div class="sheet-container" id="capture-target">
+        <div class="sheet">
+            <div class="header">
+                <div class="header-left">
+                    <div class="race-tag" id="tag">Character Registry</div>
+                    <h1 id="title">人間</h1>
+                    <div id="special-panel" class="special-option-panel">
+                        <span id="special-title" class="special-option-title"></span>
+                        <div id="special-grid" class="special-grid"></div>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div id="trait" class="trait-panel"></div>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="left-column">
+                    <div class="photo-frame" id="photo-frame">
+                        <div class="img-delete-btn" id="img-delete-btn">✕</div>
+                        <input type="file" id="img-up" hidden accept="image/*">
+                    </div>
+                    <div class="rank-section">
+                        <span class="rank-label">ENERGY CAPACITY RANK / 出力等級</span>
+                        <div class="rank-grid" id="rank-box"></div>
+                    </div>
+                </div>
+
+                <div class="inputs">
+                    <div class="field">
+                        <label>NAME / 名前</label>
+                        <input type="text" spellcheck="false">
+                    </div>
+                    
+                    <div style="display:flex; gap:20px; align-items: flex-end;">
+                        <div class="field" style="width: 80px;">
+                            <label>AGE/年齢</label>
+                            <div class="age-field">
+                                <input type="text" spellcheck="false">
+                                <span class="age-unit">歳</span>
+                            </div>
+                        </div>
+                        <div class="field" style="width: 100px;">
+                            <label>HEIGHT/身長</label>
+                            <div class="age-field">
+                                <input type="text" spellcheck="false">
+                                <span class="age-unit">cm</span>
+                            </div>
+                        </div>
+                        <div class="field" style="flex:1;">
+                            <label>GENDER / 性別</label>
+                            <div class="gender-grid">
+                                <div class="gender-item" onclick="gSelect(this)">♂</div>
+                                <div class="gender-item" onclick="gSelect(this)">♀</div>
+                                <div class="gender-item" onclick="gSelect(this)">？</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label>DETAILS / 詳細 </label>
+                        <textarea id="details-input" class="auto-resize-textarea" spellcheck="false" oninput="adjustFontSize(this)"></textarea>
+                    </div>
+
+                    <div class="energy-section">
+                        <span class="rank-label">PRIMARY ENERGY SOURCE / 主力エネルギー源</span>
+                        <div class="energy-grid" id="energy-box"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:40px; margin-top:40px;">
+                <div class="field">
+                    <label>VOCATION / 職業・役割</label>
+                    <input type="text">
+                </div>
+                <div class="field">
+                    <label>ACTIVE SECTOR / 主要活動領域</label>
+                    <input type="text">
+                </div>
+            </div>
+
+            <div class="field" style="margin-top:40px;">
+                <label>BIOGRAPHY / 経歴・過去</label>
+                <textarea id="bio-input" class="auto-resize-textarea" spellcheck="false" oninput="adjustFontSize(this)"></textarea>
+            </div>
+
+            <div class="footer">
+                <div id="foot"></div>
+                <div>VELTA OFFICIAL REGISTRY — ヴェルタ公的身分登録</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="save-area">
+        <button class="save-btn" id="save-btn">SAVE AS IMAGE / 画像として保存</button>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+    const SECRET_PASS = "mirumo";
+    let scale = 1, posX = 0, posY = 0;
+    let isDragging = false, startX = 0, startY = 0;
+    let initialDist = 0;
+
+    function adjustFontSize(el) {
+        el.style.fontSize = "20px";
+        while (el.scrollHeight > el.offsetHeight && parseFloat(el.style.fontSize) > 8) {
+            el.style.fontSize = (parseFloat(el.style.fontSize) - 1) + "px";
+        }
+    }
+
+    function checkPass() {
+        const input = document.getElementById('pass-input').value;
+        if (input === SECRET_PASS) {
+            document.getElementById('auth-screen').style.display = 'none';
+            const main = document.getElementById('main-content-wrapper');
+            main.style.display = 'block';
+            setTimeout(() => main.style.opacity = '1', 10);
+        } else {
+            alert("合言葉が違います。");
+        }
+    }
+
+    document.getElementById('pass-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') checkPass();
+    });
+
+    const photoFrame = document.getElementById('photo-frame');
+    const imgUp = document.getElementById('img-up');
+    const deleteBtn = document.getElementById('img-delete-btn');
+
+    photoFrame.onclick = (e) => {
+        if (e.target === deleteBtn || document.getElementById('target-img')) return;
+        imgUp.click();
+    };
+
+    imgUp.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (f) => {
+                const img = document.createElement('img');
+                img.src = f.target.result;
+                img.id = "target-img";
+                photoFrame.appendChild(img);
+                deleteBtn.style.display = 'flex';
+                
+                img.onload = () => {
+                    const minScale = Math.max(320 / img.naturalWidth, 500 / img.naturalHeight);
+                    scale = minScale; posX = 0; posY = 0;
+                    applyTransform(img);
+                };
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        const img = document.getElementById('target-img');
+        if (img) img.remove();
+        imgUp.value = "";
+        deleteBtn.style.display = 'none';
+    };
+
+    // 画像が枠からはみ出ないように位置を制限する関数
+    function applyTransform(img) {
+        if (!img) return;
+        
+        // 現在のスケールでの画像サイズ
+        const curW = img.naturalWidth * scale;
+        const curH = img.naturalHeight * scale;
+        
+        // 移動可能範囲の計算 (中心からのズレの許容値)
+        const limitX = Math.max(0, (curW - 320) / 2);
+        const limitY = Math.max(0, (curH - 500) / 2);
+        
+        // 制限を適用
+        posX = Math.min(Math.max(posX, -limitX), limitX);
+        posY = Math.min(Math.max(posY, -limitY), limitY);
+        
+        img.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+    }
+
+    function getDist(t1, t2) {
+        return Math.sqrt(Math.pow(t1.clientX - t2.clientX, 2) + Math.pow(t1.clientY - t2.clientY, 2));
+    }
+
+    photoFrame.addEventListener('touchstart', (e) => {
+        const img = document.getElementById('target-img');
+        if (!img) return;
+        if (e.touches.length === 1) {
+            isDragging = true;
+            startX = e.touches[0].clientX - posX;
+            startY = e.touches[0].clientY - posY;
+        } else if (e.touches.length === 2) {
+            isDragging = false;
+            initialDist = getDist(e.touches[0], e.touches[1]);
+        }
+    }, {passive: false});
+
+    photoFrame.addEventListener('touchmove', (e) => {
+        const img = document.getElementById('target-img');
+        if (!img) return;
+        e.preventDefault();
+        if (e.touches.length === 1 && isDragging) {
+            posX = e.touches[0].clientX - startX;
+            posY = e.touches[0].clientY - startY;
+        } else if (e.touches.length === 2) {
+            const currentDist = getDist(e.touches[0], e.touches[1]);
+            if (initialDist > 0) {
+                const ratio = currentDist / initialDist;
+                const minScale = Math.max(320 / img.naturalWidth, 500 / img.naturalHeight);
+                scale = Math.min(Math.max(minScale, scale * ratio), 10);
+            }
+            initialDist = currentDist;
+        }
+        applyTransform(img);
+    }, {passive: false});
+
+    window.addEventListener('touchend', (e) => {
+        if (e.touches.length < 2) initialDist = 0;
+        if (e.touches.length === 0) isDragging = false;
+    });
+
+    photoFrame.addEventListener('mousedown', (e) => {
+        if (!document.getElementById('target-img')) return;
+        isDragging = true;
+        startX = e.clientX - posX;
+        startY = e.clientY - posY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        posX = e.clientX - startX;
+        posY = e.clientY - startY;
+        applyTransform(document.getElementById('target-img'));
+    });
+
+    window.addEventListener('mouseup', () => isDragging = false);
+
+    photoFrame.onwheel = (e) => {
+        const img = document.getElementById('target-img');
+        if (!img) return;
+        e.preventDefault();
+        const minScale = Math.max(320 / img.naturalWidth, 500 / img.naturalHeight);
+        scale = Math.min(Math.max(minScale, scale + (e.deltaY > 0 ? -0.1 : 0.1)), 10);
+        applyTransform(img);
+    };
+
+    document.getElementById('save-btn').onclick = function() {
+        const target = document.getElementById('capture-target');
+        const btn = this;
+        btn.innerText = "GENERATING...";
+        target.classList.add('capturing');
+        
+        setTimeout(() => {
+            html2canvas(target, {
+                backgroundColor: '#000',
+                scale: 2,
+                useCORS: true,
+                width: 940,
+                windowWidth: 940,
+                onclone: (clonedDoc) => {
+                    clonedDoc.querySelectorAll('textarea').forEach(tx => {
+                        const div = clonedDoc.createElement('div');
+                        div.style.whiteSpace = 'pre-wrap';
+                        div.style.wordBreak = 'break-all';
+                        div.style.fontSize = tx.style.fontSize || '20px';
+                        div.style.lineHeight = '1.5';
+                        div.style.fontFamily = 'inherit';
+                        div.style.color = 'var(--main)';
+                        div.style.width = '100%';
+                        div.style.height = tx.offsetHeight + 'px';
+                        div.innerText = tx.value;
+                        tx.parentNode.replaceChild(div, tx);
+                    });
+                }
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'VELTA_Sheet.jpg';
+                link.href = canvas.toDataURL('image/jpeg', 0.9);
+                link.click();
+                target.classList.remove('capturing');
+                btn.innerText = "SAVE AS IMAGE / 画像として保存";
+            });
+        }, 100);
+    };
+
+    function gSelect(el) {
+        const items = el.parentElement.querySelectorAll('.gender-item');
+        items.forEach(item => item.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    const allRanks = ['S','A','B','C','D','E'];
+    const dataset = {
+        human: { colors: { main: '#4fc3f7', bg: '#050a14', border: 'rgba(79, 195, 247, 0.4)', glow: 'rgba(79, 195, 247, 0.8)' }, tag: 'Character Registry — Human / 人間登録票', title: '人間', trait: '特性：ヴェイン・エルム両エネルギーの運用が可能。グリフ適正が高く、全種族中最高の汎用性を持つ。', availableRanks: ['A','B','C','D','E'], energies: ['VEIN / ヴェイン', 'ELM / エルム', 'HYBRID / 混合'], foot: '※ エネルギー混合時の出力不安定性に注意', special: null },
+        beast: { colors: { main: '#81c784', bg: '#08100a', border: 'rgba(129, 199, 132, 0.4)', glow: 'rgba(129, 199, 132, 0.8)' }, tag: 'Character Registry — Beastkin / 獣人登録票', title: '獣人', trait: '特性：エルム固定。強靭な肉体と野生の直感を備え、特定の環境下で真価を発揮する。', availableRanks: ['A','B','C','D'], energies: ['ELM (FIXED) / エルム固定'], foot: '※ 種別による固有能力を備考に併記すること', special: { title: '種族・科', options: ['犬科', '猫科', '兎系'] } },
+        horn: { colors: { main: '#d156ff', bg: '#0d0615', border: 'rgba(209, 86, 255, 0.4)', glow: 'rgba(209, 86, 255, 0.8)' }, tag: 'Character Registry — Horned / 角持ち登録票', title: '角持ち', trait: '特性：ヴェイン固定。角を触媒とした高圧縮放出を行う。ランクSは希少。', availableRanks: ['S','A','B'], energies: ['VEIN (FIXED) / ヴェイン固定'], foot: '※ ランクS個体はギルドの監視対象', special: { title: '角の本数', options: ['1本', '2本'] } }
+    };
+
+    function update(r, btnElement) {
+        const d = dataset[r];
+        const root = document.documentElement;
+        root.style.setProperty('--main', d.colors.main);
+        root.style.setProperty('--bg', d.colors.bg);
+        root.style.setProperty('--border', d.colors.border);
+        root.style.setProperty('--glow', d.colors.glow);
+
+        document.querySelectorAll('#race-selector button').forEach(btn => btn.classList.remove('active'));
+        if (btnElement) btnElement.classList.add('active');
+
+        document.getElementById('tag').innerText = d.tag;
+        document.getElementById('title').innerText = d.title;
+        document.getElementById('trait').innerText = d.trait;
+        document.getElementById('foot').innerText = d.foot;
+
+        const sp = document.getElementById('special-panel');
+        const sg = document.getElementById('special-grid');
+        if (d.special) {
+            sp.style.display = 'block';
+            document.getElementById('special-title').innerText = d.special.title;
+            sg.innerHTML = '';
+            d.special.options.forEach(opt => {
+                const div = document.createElement('div');
+                div.className = 'spec-item';
+                div.innerHTML = `<div class="spec-circle"></div><span>${opt}</span>`;
+                div.onclick = function() {
+                    Array.from(sg.children).forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                };
+                sg.appendChild(div);
+            });
+        } else {
+            sp.style.display = 'none';
+        }
+
+        const rb = document.getElementById('rank-box');
+        rb.innerHTML = '';
+        allRanks.forEach(v => {
+            const i = document.createElement('div');
+            i.className = 'rank-item';
+            i.innerText = v;
+            if (d.availableRanks.includes(v)) {
+                i.onclick = function() {
+                    Array.from(rb.children).forEach(x=>x.classList.remove('active'));
+                    this.classList.add('active');
+                };
+            } else {
+                i.classList.add('disabled');
+            }
+            rb.appendChild(i);
+        });
+
+        const eb = document.getElementById('energy-box');
+        eb.innerHTML = '';
+        d.energies.forEach(e => {
+            const i = document.createElement('div');
+            i.className = 'energy-item';
+            i.innerText = e;
+            i.onclick = function() {
+                Array.from(eb.children).forEach(x=>x.classList.remove('active'));
+                this.classList.add('active');
+            };
+            eb.appendChild(i);
+        });
+    }
+
+    update('human', document.querySelector('#race-selector button'));
+</script>
+</body>
+</html>
